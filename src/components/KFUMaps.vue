@@ -113,15 +113,37 @@
         methods: {
             openTown: function(event) {
                 var tablinks = document.getElementsByClassName("town_links");
+                var arr = [];
                 for (var i = 0; i < tablinks.length; i++) {
                     tablinks[i].classList.remove("active");
                 }
                 event.currentTarget.className += " active";
 
-                map.setCenter(data.cities.find(function (item) {
+                var city = data.cities.find(function (item) {
                     return item.name===event.target.innerHTML;
-                }).center);
+                });
+                map.setCenter(city.center);
                 map.zoomTo(12);
+
+                var j;
+                if(city.name!=="Казань") {
+                    arr = document.getElementsByClassName("nav-parent-wrapper");
+                    for (j = 0; j < arr.length; j++) {
+                        arr[j].style.opacity = 0;
+                    }
+                    arr = document.getElementsByClassName("nav-child");
+                    for (j = 0; j < arr.length; j++) {
+                        arr[j].style.opacity = 0;
+                    }
+                } else {
+                    arr = document.getElementsByClassName("nav-parent-wrapper");
+                    for (j = 0; j < arr.length; j++) {
+                        arr[j].style.opacity = 1;
+                    }arr = document.getElementsByClassName("nav-child");
+                    for (j = 0; j < arr.length; j++) {
+                        arr[j].style.opacity = 1;
+                    }
+                }
             },
             clickRoundCheckbox: function(event) {
                 var isChecked = !event.target.previousElementSibling.checked;
@@ -238,6 +260,11 @@
                     return item.name.toLowerCase().includes(data.search_filter.toLowerCase());
                 });
             }
+        },
+        mounted() {
+            axios
+                .get('https://web.kpfu.ru/wp-json/api/map')
+                .then(response => (this.info = response));
         }
     }
 
@@ -499,7 +526,7 @@
         border: none;
         text-align: left;
         cursor: pointer;
-        background-color: #00549f;
+        background-color: transparent;
         width: 100%;
         display: flex;
         flex-flow: row nowrap;
