@@ -1,5 +1,5 @@
 <template>
-    <div class="outer_div">
+    <div class="outer_div" v-if="!loading">
         <ul class="towns_list">
             <li v-for="city in cities" :key="city.name" ><a v-on:click="openTown"  class="town_links uk-link-heading" v-bind:class="{ active: city.name === 'Казань' }">{{city.name}}</a></li>
         </ul>
@@ -50,8 +50,8 @@
 
                 <div class="search_field_popup uk-card" v-on:focusout="hidePopup">
                     <ul class="search_result_list">
-                        <li v-for="building in search_results" :key="building.name" v-on:click="clickSearchResultItem">
-                            {{building.name}}
+                        <li v-for="building in search_results" :key="building.title" v-on:click="clickSearchResultItem">
+                            {{building.title}}
                         </li>
                     </ul>
                 </div>
@@ -72,7 +72,7 @@
 
 <script>
     import mapboxgl from 'mapbox-gl';
-    // import axios from 'axios'
+    import axios from 'axios'
 
     var data = {
         search_filter: "",
@@ -115,7 +115,8 @@
                 buildingTypes: data.buildingTypes,
                 search_filter: "",
                 map: undefined,
-                markers_list: []
+                markers_list: [],
+                loading: true
             }
         },
         methods: {
@@ -159,10 +160,10 @@
 
                 if (event.target.parentNode.parentNode.className === "nav-parent-wrapper") {
                     setCheckedAllChildrenOf(event.target.parentNode.parentNode.nextElementSibling, isChecked);
-                    clearOrAddAllBuildingMarkersByType(isChecked, event.target.parentNode.nextElementSibling.parentNode.nextElementSibling);
+                    clearOrAddAllBuildingMarkersByType(isChecked, event.target.parentNode.nextElementSibling.parentNode.nextElementSibling, this);
                 } else {
                     uncheckParentIfEmpty(event.target.parentNode.parentNode.parentNode);
-                    clearOrAddBuildingMarker(isChecked, event.target.parentNode.nextElementSibling.childNodes[0].innerHTML);
+                    clearOrAddBuildingMarker(isChecked, event.target.parentNode.nextElementSibling.childNodes[0].innerHTML, this);
                 }
             },
             showChild: function(event) {
@@ -190,30 +191,32 @@
                 var building_name = el.childNodes[0].innerHTML;
 
                 var building = this.buildings.find(function (item) {
-                    return item.name===building_name;
+                    return item.title===building_name;
                 });
 
                 el.previousElementSibling.children[0].checked = true;
-                clearOrAddBuildingMarker(true, building_name);
+                clearOrAddBuildingMarker(true, building_name, this);
                 uncheckParentIfEmpty(el.parentNode.parentNode);
 
                 this.map.on('zoomstart', function() {
+                    console.log(1);
                     this.markers_list.forEach(function (item) {
                         if (item.getPopup().isOpen()) {
                             item.togglePopup();
                         }
                     });
-                });
-                this.on('zoomend', function() {
-                    this.markers_list[building.id].getElement().click();
-                });
-                this.flyTo({zoom: 15, center: building.coords }, {building_id : building.id});
+                }, this);
+                this.map.on('zoomend', function() {
+                    getMarkerByBuildingName(building.title, this).getElement().click();
+                }, this);
+                this.map.flyTo({zoom: 15, center: retrieveCoordinates(building.coordinates) }, {building_id : building.id});
+
+                document.getElementsByClassName("search_field")[0].value = "";
             },
             getBuildingsOfType: function(value) {
-                var that = this;
-                return that.buildings.filter(function (item) {
-                    return item.type===(that.buildingTypes.find(type => type.id === value).name);
-                });
+                return this.buildings.filter(function (item) {
+                    return item.type===(this.buildingTypes.find(type => type.id === value).name);
+                }, this);
             },
             expandMap: function(event) {
                 document.getElementsByClassName("inner_block")[0].addEventListener("transitionstart", function () {
@@ -264,11 +267,11 @@
             search_results: function () {
                 return this.search_filter === "" ? this.buildings :
                     this.buildings.filter(function (item) {
-                    return item.name.toLowerCase().includes(this.search_filter.toLowerCase());
-                });
+                    return item.title.toLowerCase().includes(this.search_filter.toLowerCase());
+                }, this);
             }
         },
-        mounted() {
+        updated() {
             mapboxgl.accessToken = 'pk.eyJ1IjoibWFnZW50YWkiLCJhIjoiY2s3dnYxNGM2MDZiZTNmbm45c25vOG04dSJ9.yKeUDhl57--T2uMVzQFuGA';
             this.map = new mapboxgl.Map({
                 container: 'map',
@@ -280,16 +283,16 @@
             // add markers
             this.buildings.forEach(function (item) {
                 var marker = new mapboxgl.Marker()
-                    .setLngLat(item.coords)
+                    .setLngLat(retrieveCoordinates(item.coordinates))
                     .addTo(this.map);
                 this.markers_list.push(marker);
 
-                marker.getElement().classList.add(item.type===0? 'markerEdu' : 'markerLive');
+                marker.getElement().classList.add(markerTypeOf(item.type));
 
                 marker.getElement().innerHTML = "";
 
                 var popup = new mapboxgl.Popup({ offset: 25, className: "marker_popup" })
-                    .setText(item.name);
+                    .setText(item.title);
                 marker.setPopup(popup);
             }, this);
 
@@ -304,14 +307,17 @@
             this.map.addControl(new mapboxgl.NavigationControl());
         },
         created() {
-            // axios
-            //     .get('https://web.kpfu.ru/wp-json/api/map')
-            //     .then(response => (this.buildings = response.data))
-            //     .catch(function(e){
-            //             console.log(e);
-            //         });
-            // console.log(this.buildings);
+            axios
+                .get('https://web.kpfu.ru/wp-json/api/map')
+                .then(response => {this.buildings = response.data; this.loading = false})
+                .catch(function(e){
+                        console.log(e);
+                    });
         }
+    }
+
+    function markerTypeOf (value) {
+        return value === "Учебные здания" ? 'markerEdu' : 'markerLive';
     }
 
     function showChildIfNotShown (el) {
@@ -339,17 +345,30 @@
         parent.previousElementSibling.children[0].children[0].checked = isEmpty!==0;
     }
 
-    function clearOrAddAllBuildingMarkersByType(value, parent){
+    function clearOrAddAllBuildingMarkersByType(value, parent, that){
         var children = parent.children;
         for (var i = 0; i < children.length; i++) {
-            clearOrAddBuildingMarker(value, children[i].children[1].children[0].innerHTML);
+            clearOrAddBuildingMarker(value, children[i].children[1].children[0].innerHTML, that);
         }
     }
 
-    function clearOrAddBuildingMarker(value, name){
-        this.markers_list[this.buildings.find(function (item) {
-            return item.name === name;
-        }).id].getElement().style.opacity = value ? "1" : "0";
+    function clearOrAddBuildingMarker(value, name, that){
+        getMarkerByBuildingName(name, that).getElement().style.opacity = value ? "1" : "0";
+    }
+
+    function getMarkerByBuildingName(name, that){
+        var building_coordinates = retrieveCoordinates(that.buildings.find(function (item) {
+            return item.title === name
+        }).coordinates);
+
+        return that.markers_list.find(function (item) {
+            return [item.getLngLat().lng, item.getLngLat().lat].toString() === building_coordinates.toString();
+        });
+    }
+
+    function retrieveCoordinates(value) {
+        // noinspection RegExpSingleCharAlternation
+        return value.replace(/\[|,|\]/g, "").split(" ").map(item => parseFloat(item));
     }
 </script>
 
@@ -526,6 +545,7 @@
         padding: 0px;
     }
     .nav-parent > svg {
+        min-width: 15px;
         width: 15px;
         height: 15px;
         fill: white;
