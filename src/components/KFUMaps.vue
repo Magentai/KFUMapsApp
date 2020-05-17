@@ -55,7 +55,7 @@
                         </li>
                     </ul>
                 </div>
-                <input type="text" placeholder="Поиск..." uk-icon="search" class="search_field uk-input uk-search-input" v-on:input="searchFieldInput" v-on:focusin="showPopup" />
+                <input type="text" placeholder="Поиск..." class="search_field uk-input uk-search-input" v-on:input="searchFieldInput" v-on:focusin="showPopup" />
             </div>
             <div class="expand_button_wrapper">
                 <div class="expand_button" v-on:click="expandMap" style="transform: rotate(180deg);">
@@ -74,37 +74,13 @@
     import mapboxgl from 'mapbox-gl';
     import axios from 'axios'
 
-    var data = {
+    let data = {
         search_filter: "",
-        buildings: [
-        {   id: 0,
-            name: "Главное здание",
-            addr: "Кремлёвская, 18",
-            coords: [49.121815379295526, 55.79086830609842],
-            type: 0,
-            city_id: 0 },
-        {   id: 1,
-            name: "Второй корпус",
-            addr: "Кремлёвская, 35",
-            coords: [49.122113604668584, 55.792150207888284],
-            type: 0,
-            city_id: 0 },
-        {   id: 2,
-            name: "Деревня Универсиады",
-            coords: [49.18479432507627, 55.7414034713012],
-            type: 1,
-            city_id: 0 },
-        {   id: 3,
-            name: "Красная позиция",
-            coords: [49.16506039239721, 55.78916226409763],
-            type: 1,
-            city_id: 0 }
-    ],
-    cities : [{id: 0, name: "Казань", center: [49.121815379295526,55.79086830609842]}, {id: 1, name: "Н. Челны", center: [52.40073983330103, 55.74134240544038]}, {id: 2, name: "Елабуга", center: [52.05435872588566, 55.757598796312465]}, {id: 3, name: "Чистополь", center: [50.63665252982105, 55.37135945884043]}],
-    buildingTypes: [
+        cities : [{id: 0, name: "Казань", center: [49.121815379295526,55.79086830609842]}, {id: 1, name: "Н. Челны", center: [52.40073983330103, 55.74134240544038]}, {id: 2, name: "Елабуга", center: [52.05435872588566, 55.757598796312465]}, {id: 3, name: "Чистополь", center: [50.63665252982105, 55.37135945884043]}],
+        buildingTypes: [
         {id: 0, name: "Учебные здания"},
         {id: 1, name: "Общежития"}
-    ]};
+        ]};
 
     export default {
         name: "KFUMaps",
@@ -121,20 +97,20 @@
         },
         methods: {
             openTown: function(event) {
-                var tablinks = document.getElementsByClassName("town_links");
-                var arr = [];
-                for (var i = 0; i < tablinks.length; i++) {
-                    tablinks[i].classList.remove("active");
+                let tab_links= document.getElementsByClassName("town_links");
+                let arr;
+                for (let i = 0; i < tab_links.length; i++) {
+                    tab_links[i].classList.remove("active");
                 }
                 event.currentTarget.className += " active";
 
-                var city = this.cities.find(function (item) {
+                let city = this.cities.find(function (item) {
                     return item.name===event.target.innerHTML;
                 });
                 this.map.setCenter(city.center);
                 this.map.zoomTo(12);
 
-                var j;
+                let j;
                 if(city.name!=="Казань") {
                     arr = document.getElementsByClassName("nav-parent-wrapper");
                     for (j = 0; j < arr.length; j++) {
@@ -155,48 +131,48 @@
                 }
             },
             clickRoundCheckbox: function(event) {
-                var isChecked = !event.target.previousElementSibling.checked;
+                let isChecked = !event.target.previousElementSibling.checked;
                 event.target.previousElementSibling.checked = isChecked;
 
                 if (event.target.parentNode.parentNode.className === "nav-parent-wrapper") {
-                    setCheckedAllChildrenOf(event.target.parentNode.parentNode.nextElementSibling, isChecked);
-                    clearOrAddAllBuildingMarkersByType(isChecked, event.target.parentNode.nextElementSibling.parentNode.nextElementSibling, this);
+                    this.setCheckedAllChildrenOf(event.target.parentNode.parentNode.nextElementSibling, isChecked);
+                    this.clearOrAddAllBuildingMarkersByType(isChecked, event.target.parentNode.nextElementSibling.parentNode.nextElementSibling, this);
                 } else {
-                    uncheckParentIfEmpty(event.target.parentNode.parentNode.parentNode);
-                    clearOrAddBuildingMarker(isChecked, event.target.parentNode.nextElementSibling.childNodes[0].innerHTML, this);
+                    this.uncheckParentIfEmpty(event.target.parentNode.parentNode.parentNode);
+                    this.clearOrAddBuildingMarker(isChecked, event.target.parentNode.nextElementSibling.childNodes[0].innerHTML, this);
                 }
             },
             showChild: function(event) {
-                var el = event.target.parentElement;
+                let el = event.target.parentElement;
                 el.classList.toggle("nav-parent_active");
 
-                var panel = el.parentElement.nextElementSibling;
+                let panel = el.parentElement.nextElementSibling;
 
                 panel.style.maxHeight = panel.style.maxHeight ? null : panel.scrollHeight + "px";
             },
             setLinkFocused: function(event) {
-                showChildIfNotShown(event.target.parentElement.parentElement.parentElement.previousElementSibling.children[1]);
+                this.showChildIfNotShown(event.target.parentElement.parentElement.parentElement.previousElementSibling.children[1]);
 
-                var arr = document.getElementsByClassName("nav-child-item_a_focus");
-                for (var i=0;i< arr.length; i++) {
+                let arr = document.getElementsByClassName("nav-child-item_a_focus");
+                for (let i=0;i< arr.length; i++) {
                     arr[i].classList.remove("nav-child-item_a_focus");
                 }
 
-                var el = event.target;
+                let el = event.target;
                 while (el.tagName !== "A") {
                     el = el.parentElement;
                 }
                 el.classList.add("nav-child-item_a_focus");
 
-                var building_name = el.childNodes[0].innerHTML;
+                let building_name = el.childNodes[0].innerHTML;
 
-                var building = this.buildings.find(function (item) {
+                let building = this.buildings.find(function (item) {
                     return item.title===building_name;
                 });
 
                 el.previousElementSibling.children[0].checked = true;
-                clearOrAddBuildingMarker(true, building_name, this);
-                uncheckParentIfEmpty(el.parentNode.parentNode);
+                this.clearOrAddBuildingMarker(true, building_name);
+                this.uncheckParentIfEmpty(el.parentNode.parentNode);
 
                 this.map.on('zoomstart', function() {
                     console.log(1);
@@ -205,11 +181,11 @@
                             item.togglePopup();
                         }
                     });
-                }, this);
+                }.bind(this));
                 this.map.on('zoomend', function() {
-                    getMarkerByBuildingName(building.title, this).getElement().click();
-                }, this);
-                this.map.flyTo({zoom: 15, center: retrieveCoordinates(building.coordinates) }, {building_id : building.id});
+                    this.getMarkerByBuildingName(building.title).getElement().click();
+                }.bind(this));
+                this.map.flyTo({zoom: 15, center: this.retrieveCoordinates(building.coordinates) }, {building_id : building.id});
 
                 document.getElementsByClassName("search_field")[0].value = "";
             },
@@ -222,11 +198,11 @@
                 document.getElementsByClassName("inner_block")[0].addEventListener("transitionstart", function () {
                     document.getElementsByClassName("map_blocker")[0].style.zIndex = "1";
                     this.map.resize();
-                }, {once : true});
+                }.bind(this), {once : true});
                 document.getElementsByClassName("inner_block")[0].addEventListener("transitionend", function () {
                     document.getElementsByClassName("map_blocker")[0].style.zIndex = "0";
                     this.map.resize();
-                }, {once : true});
+                }.bind(this), {once : true});
 
                 if (event.target.style.transform==="rotate(180deg)")  {
                     event.target.style.transform = "rotate(0deg)";
@@ -246,9 +222,9 @@
                 event.target.previousElementSibling.style.maxHeight = this.search_filter === "" ? "0px" : "250px";
             },
             clickSearchResultItem: function (event) {
-                var arr = document.getElementsByClassName("building_name");
-                var result;
-                for (var i = 0; i< arr.length; i++) {
+                let arr = document.getElementsByClassName("building_name");
+                let result;
+                for (let i = 0; i< arr.length; i++) {
                     if (arr[i].innerHTML.toLowerCase().includes(event.target.innerHTML.trim().toLowerCase())) {
                         result = arr[i];
                     }
@@ -261,6 +237,88 @@
             },
             showPopup: function (event) {
                 event.target.previousElementSibling.style.maxHeight = this.search_filter === "" ? "0px" : "250px";
+            },
+            markerTypeOf: function (value) {
+                return value === "Учебные здания" ? 'markerEdu' : 'markerLive';
+            },
+            showChildIfNotShown: function (el) {
+                if (!el.classList.contains("nav-parent_active")) {
+                    el.classList.add("nav-parent_active");
+                    let panel = el.parentElement.nextElementSibling;
+
+                    panel.style.maxHeight = panel.style.maxHeight ? null : panel.scrollHeight + "px";
+                }
+            },
+            setCheckedAllChildrenOf: function (parent, value){
+                let arr = parent.children;
+                for (let i = 0; i<arr.length; i++) {
+                    arr[i].children[0].children[0].checked = value;
+                }
+            },
+            uncheckParentIfEmpty: function(parent){
+                let arr = parent.children;
+                let isEmpty = 0;
+                for (let i = 0; i<arr.length; i++) {
+                    isEmpty = isEmpty + arr[i].children[0].children[0].checked;
+                }
+                parent.previousElementSibling.children[0].children[0].checked = isEmpty!==0;
+            },
+            clearOrAddAllBuildingMarkersByType: function(value, parent){
+                let children = parent.children;
+                for (let i = 0; i < children.length; i++) {
+                    this.clearOrAddBuildingMarker(value, children[i].children[1].children[0].innerHTML);
+                }
+            },
+            clearOrAddBuildingMarker: function(value, name, that){
+                let marker = this.getMarkerByBuildingName(name, that);
+                marker.getElement().style.width = value ? "50px" : "0px";
+                marker.getPopup().isOpen() && marker.togglePopup();
+            },
+            getMarkerByBuildingName: function(name){
+                let building_coordinates = this.retrieveCoordinates(this.buildings.find(function (item) {
+                    return item.title === name
+                }).coordinates);
+
+                return this.markers_list.find(function (item) {
+                    return [item.getLngLat().lng, item.getLngLat().lat].toString() === building_coordinates.toString();
+                });
+            },
+            retrieveCoordinates: function(value) {
+                return value.replace(/\[|,|\]/g, "").split(" ").map(item => parseFloat(item));
+            },
+            mountMaps: function() {
+                mapboxgl.accessToken = 'pk.eyJ1IjoibWFnZW50YWkiLCJhIjoiY2s3dnYxNGM2MDZiZTNmbm45c25vOG04dSJ9.yKeUDhl57--T2uMVzQFuGA';
+                this.map = new mapboxgl.Map({
+                    container: 'map',
+                    style: 'mapbox://styles/magentai/ck9u58ftx0zzn1iqam0b3f597/draft',
+                    zoom: 14,
+                    center: [49.121815379295526, 55.79086830609842]
+                });
+
+                this.buildings.forEach(function (item) {
+                    let marker = new mapboxgl.Marker()
+                        .setLngLat(this.retrieveCoordinates(item.coordinates))
+                        .addTo(this.map);
+                    this.markers_list.push(marker);
+
+                    marker.getElement().classList.add(this.markerTypeOf(item.type));
+
+                    marker.getElement().innerHTML = "";
+
+                    let popup = new mapboxgl.Popup({ offset: 25, className: "marker_popup" })
+                        .setText(item.title);
+                    marker.setPopup(popup);
+                }, this);
+
+                this.map.addControl(
+                    new mapboxgl.GeolocateControl({
+                        positionOptions: {
+                            enableHighAccuracy: true
+                        },
+                        trackUserLocation: true
+                    })
+                );
+                this.map.addControl(new mapboxgl.NavigationControl());
             }
         },
         computed: {
@@ -272,39 +330,7 @@
             }
         },
         updated() {
-            mapboxgl.accessToken = 'pk.eyJ1IjoibWFnZW50YWkiLCJhIjoiY2s3dnYxNGM2MDZiZTNmbm45c25vOG04dSJ9.yKeUDhl57--T2uMVzQFuGA';
-            this.map = new mapboxgl.Map({
-                container: 'map',
-                style: 'mapbox://styles/magentai/ck9u58ftx0zzn1iqam0b3f597/draft',
-                zoom: 14,
-                center: [49.121815379295526, 55.79086830609842]
-            });
-
-            // add markers
-            this.buildings.forEach(function (item) {
-                var marker = new mapboxgl.Marker()
-                    .setLngLat(retrieveCoordinates(item.coordinates))
-                    .addTo(this.map);
-                this.markers_list.push(marker);
-
-                marker.getElement().classList.add(markerTypeOf(item.type));
-
-                marker.getElement().innerHTML = "";
-
-                var popup = new mapboxgl.Popup({ offset: 25, className: "marker_popup" })
-                    .setText(item.title);
-                marker.setPopup(popup);
-            }, this);
-
-            this.map.addControl(
-                new mapboxgl.GeolocateControl({
-                    positionOptions: {
-                        enableHighAccuracy: true
-                    },
-                    trackUserLocation: true
-                })
-            );
-            this.map.addControl(new mapboxgl.NavigationControl());
+            if(this.map === undefined) this.mountMaps();
         },
         created() {
             axios
@@ -314,61 +340,6 @@
                         console.log(e);
                     });
         }
-    }
-
-    function markerTypeOf (value) {
-        return value === "Учебные здания" ? 'markerEdu' : 'markerLive';
-    }
-
-    function showChildIfNotShown (el) {
-        if (!el.classList.contains("nav-parent_active")) {
-            el.classList.add("nav-parent_active");
-            var panel = el.parentElement.nextElementSibling;
-
-            panel.style.maxHeight = panel.style.maxHeight ? null : panel.scrollHeight + "px";
-        }
-    }
-
-    function setCheckedAllChildrenOf(parent, value){
-        var arr = parent.children;
-        for (var i = 0; i<arr.length; i++) {
-            arr[i].children[0].children[0].checked = value;
-        }
-    }
-
-    function uncheckParentIfEmpty(parent){
-        var arr = parent.children;
-        var isEmpty = 0;
-        for (var i = 0; i<arr.length; i++) {
-            isEmpty = isEmpty + arr[i].children[0].children[0].checked;
-        }
-        parent.previousElementSibling.children[0].children[0].checked = isEmpty!==0;
-    }
-
-    function clearOrAddAllBuildingMarkersByType(value, parent, that){
-        var children = parent.children;
-        for (var i = 0; i < children.length; i++) {
-            clearOrAddBuildingMarker(value, children[i].children[1].children[0].innerHTML, that);
-        }
-    }
-
-    function clearOrAddBuildingMarker(value, name, that){
-        getMarkerByBuildingName(name, that).getElement().style.opacity = value ? "1" : "0";
-    }
-
-    function getMarkerByBuildingName(name, that){
-        var building_coordinates = retrieveCoordinates(that.buildings.find(function (item) {
-            return item.title === name
-        }).coordinates);
-
-        return that.markers_list.find(function (item) {
-            return [item.getLngLat().lng, item.getLngLat().lat].toString() === building_coordinates.toString();
-        });
-    }
-
-    function retrieveCoordinates(value) {
-        // noinspection RegExpSingleCharAlternation
-        return value.replace(/\[|,|\]/g, "").split(" ").map(item => parseFloat(item));
     }
 </script>
 
@@ -616,7 +587,7 @@
         height: 50px;
         border-radius: 50%;
         cursor: pointer;
-        transition: opacity 0.2s ease;
+        transition: width 0.2s ease;
     }
     .markerLive {
         background-color: orange;
@@ -628,7 +599,7 @@
         height: 50px;
         border-radius: 50%;
         cursor: pointer;
-        transition: opacity 0.2s ease;
+        transition: width 0.2s ease;
     }
     .marker_popup {
         color: black !important;
