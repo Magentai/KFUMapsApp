@@ -72,7 +72,7 @@
 
 <script>
     import mapboxgl from 'mapbox-gl';
-  //  import axios from 'axios'
+    // import axios from 'axios'
 
     var data = {
         search_filter: "",
@@ -110,7 +110,7 @@
         name: "KFUMaps",
         data() {
             return {
-                buildings: data.buildings,
+                buildings: undefined,
                 cities: data.cities,
                 buildingTypes: data.buildingTypes,
                 search_filter: "",
@@ -277,7 +277,6 @@
                 center: [49.121815379295526, 55.79086830609842]
             });
 
-            console.log(this.buildings);
             // add markers
             this.buildings.forEach(function (item) {
                 var marker = new mapboxgl.Marker()
@@ -309,10 +308,9 @@
             //     .get('https://web.kpfu.ru/wp-json/api/map')
             //     .then(response => (this.buildings = response.data))
             //     .catch(function(e){
-            //             console.log(error);
+            //             console.log(e);
             //         });
-            console.log(this.buildings);
-            console.log(this.buildingTypes);
+            // console.log(this.buildings);
         }
     }
 
