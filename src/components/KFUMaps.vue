@@ -18,12 +18,12 @@
             c2.6,2.6,6.1,4,9.5,4s6.9-1.3,9.5-4c5.3-5.3,5.3-13.8,0-19.1L145.188,238.575z"/></g></svg></button>
                 </div>
                 <ul class="nav-child">
-                    <li class="nav-child-item" v-for="building in getBuildingsOfType(0)" :key="building.name" >
+                    <li class="nav-child-item" v-for="building in getBuildingsOfType(0)" :key="building.title" >
                         <div class="round_checkbox_mini" v-on:click="clickRoundCheckbox">
                             <input type="checkbox" class="round_checkbox_input"  checked/>
                             <label></label>
                         </div>
-                        <a href="#" v-on:click="setLinkFocused"><p class="building_name">{{building.name}}</p><p v-if="building.addr">{{building.addr}}</p></a>
+                        <a href="#" v-on:click="setLinkFocused"><p class="building_name">{{building.title}}</p><p v-if="building.address">{{building.address}}</p></a>
                     </li>
                 </ul>
 
@@ -39,12 +39,12 @@
             c2.6,2.6,6.1,4,9.5,4s6.9-1.3,9.5-4c5.3-5.3,5.3-13.8,0-19.1L145.188,238.575z"/></g></svg></button>
                 </div>
                 <ul class="nav-child">
-                    <li class="nav-child-item" v-for="building in getBuildingsOfType(1)" :key="building.name" >
+                    <li class="nav-child-item" v-for="building in getBuildingsOfType(1)" :key="building.title" >
                         <div class="round_checkbox_mini" v-on:click="clickRoundCheckbox">
                             <input type="checkbox" class="round_checkbox_input"  checked/>
                             <label></label>
                         </div>
-                        <a href="#" v-on:click="setLinkFocused"><p class="building_name">{{building.name}}</p><p v-if="building.addr">{{building.addr}}</p></a>
+                        <a href="#" v-on:click="setLinkFocused"><p class="building_name">{{building.title}}</p><p v-if="building.address">{{building.address}}</p></a>
                     </li>
                 </ul>
 
@@ -72,6 +72,7 @@
 
 <script>
     import mapboxgl from 'mapbox-gl';
+  //  import axios from 'axios'
 
     var data = {
         search_filter: "",
@@ -107,8 +108,15 @@
 
     export default {
         name: "KFUMaps",
-        data: function () {
-            return data;
+        data() {
+            return {
+                buildings: data.buildings,
+                cities: data.cities,
+                buildingTypes: data.buildingTypes,
+                search_filter: "",
+                map: undefined,
+                markers_list: []
+            }
         },
         methods: {
             openTown: function(event) {
@@ -119,11 +127,11 @@
                 }
                 event.currentTarget.className += " active";
 
-                var city = data.cities.find(function (item) {
+                var city = this.cities.find(function (item) {
                     return item.name===event.target.innerHTML;
                 });
-                map.setCenter(city.center);
-                map.zoomTo(12);
+                this.map.setCenter(city.center);
+                this.map.zoomTo(12);
 
                 var j;
                 if(city.name!=="Казань") {
@@ -181,7 +189,7 @@
 
                 var building_name = el.childNodes[0].innerHTML;
 
-                var building = data.buildings.find(function (item) {
+                var building = this.buildings.find(function (item) {
                     return item.name===building_name;
                 });
 
@@ -189,34 +197,33 @@
                 clearOrAddBuildingMarker(true, building_name);
                 uncheckParentIfEmpty(el.parentNode.parentNode);
 
-                map.on('zoomstart', function() {
-                    markers_list.forEach(function (item) {
+                this.map.on('zoomstart', function() {
+                    this.markers_list.forEach(function (item) {
                         if (item.getPopup().isOpen()) {
                             item.togglePopup();
                         }
                     });
                 });
-                map.on('zoomend', function() {
-                    markers_list[building.id].getElement().click();
+                this.on('zoomend', function() {
+                    this.markers_list[building.id].getElement().click();
                 });
-                map.flyTo({zoom: 15, center: building.coords }, {building_id : building.id});
+                this.flyTo({zoom: 15, center: building.coords }, {building_id : building.id});
             },
             getBuildingsOfType: function(value) {
-                return this.buildings.filter(function (item) {
-                    return item.type===value;
+                var that = this;
+                return that.buildings.filter(function (item) {
+                    return item.type===(that.buildingTypes.find(type => type.id === value).name);
                 });
             },
             expandMap: function(event) {
                 document.getElementsByClassName("inner_block")[0].addEventListener("transitionstart", function () {
                     document.getElementsByClassName("map_blocker")[0].style.zIndex = "1";
-                    map.resize();
+                    this.map.resize();
                 }, {once : true});
                 document.getElementsByClassName("inner_block")[0].addEventListener("transitionend", function () {
                     document.getElementsByClassName("map_blocker")[0].style.zIndex = "0";
-                    map.resize();
+                    this.map.resize();
                 }, {once : true});
-                // document.getElementsByClassName("inner_block")[0].addEventListener("transitionstart", setMapClockerShown);
-                // document.getElementsByClassName("inner_block")[0].addEventListener("transitionend", setMapClockerShown);
 
                 if (event.target.style.transform==="rotate(180deg)")  {
                     event.target.style.transform = "rotate(0deg)";
@@ -231,9 +238,9 @@
                 }
             },
             searchFieldInput: function (event) {
-                data.search_filter = event.target.value;
+                this.search_filter = event.target.value;
 
-                event.target.previousElementSibling.style.maxHeight = data.search_filter === "" ? "0px" : "250px";
+                event.target.previousElementSibling.style.maxHeight = this.search_filter === "" ? "0px" : "250px";
             },
             clickSearchResultItem: function (event) {
                 var arr = document.getElementsByClassName("building_name");
@@ -250,36 +257,64 @@
                 event.target.previousElementSibling.style.maxHeight = "0px";
             },
             showPopup: function (event) {
-                event.target.previousElementSibling.style.maxHeight = data.search_filter === "" ? "0px" : "250px";
+                event.target.previousElementSibling.style.maxHeight = this.search_filter === "" ? "0px" : "250px";
             }
         },
         computed: {
             search_results: function () {
-                return data.search_filter === "" ? data.buildings :
-                data.buildings.filter(function (item) {
-                    return item.name.toLowerCase().includes(data.search_filter.toLowerCase());
+                return this.search_filter === "" ? this.buildings :
+                    this.buildings.filter(function (item) {
+                    return item.name.toLowerCase().includes(this.search_filter.toLowerCase());
                 });
             }
         },
         mounted() {
-            axios
-                .get('https://web.kpfu.ru/wp-json/api/map')
-                .then(response => (this.info = response));
+            mapboxgl.accessToken = 'pk.eyJ1IjoibWFnZW50YWkiLCJhIjoiY2s3dnYxNGM2MDZiZTNmbm45c25vOG04dSJ9.yKeUDhl57--T2uMVzQFuGA';
+            this.map = new mapboxgl.Map({
+                container: 'map',
+                style: 'mapbox://styles/magentai/ck9u58ftx0zzn1iqam0b3f597/draft',
+                zoom: 14,
+                center: [49.121815379295526, 55.79086830609842]
+            });
+
+            console.log(this.buildings);
+            // add markers
+            this.buildings.forEach(function (item) {
+                var marker = new mapboxgl.Marker()
+                    .setLngLat(item.coords)
+                    .addTo(this.map);
+                this.markers_list.push(marker);
+
+                marker.getElement().classList.add(item.type===0? 'markerEdu' : 'markerLive');
+
+                marker.getElement().innerHTML = "";
+
+                var popup = new mapboxgl.Popup({ offset: 25, className: "marker_popup" })
+                    .setText(item.name);
+                marker.setPopup(popup);
+            }, this);
+
+            this.map.addControl(
+                new mapboxgl.GeolocateControl({
+                    positionOptions: {
+                        enableHighAccuracy: true
+                    },
+                    trackUserLocation: true
+                })
+            );
+            this.map.addControl(new mapboxgl.NavigationControl());
+        },
+        created() {
+            // axios
+            //     .get('https://web.kpfu.ru/wp-json/api/map')
+            //     .then(response => (this.buildings = response.data))
+            //     .catch(function(e){
+            //             console.log(error);
+            //         });
+            console.log(this.buildings);
+            console.log(this.buildingTypes);
         }
     }
-
-    // function setMapClockerShown () {
-    //     if (!document.getElementsByClassName("map_blocker")[0].style.zIndex==="2") {
-    //         console.log("1");
-    //         document.getElementsByClassName("map_blocker")[0].style.zIndex = "2";
-    //    //     document.getElementsByClassName("inner_block")[0].removeEventListener("transitionstart", setMapClockerShown);
-    //     } else {
-    //         console.log("2");
-    //         document.getElementsByClassName("map_blocker")[0].style.zIndex = "0";
-    //     //    document.getElementsByClassName("inner_block")[0].removeEventListener("transitionend", setMapClockerShown);
-    //         map.resize();
-    //     }
-    // }
 
     function showChildIfNotShown (el) {
         if (!el.classList.contains("nav-parent_active")) {
@@ -314,57 +349,10 @@
     }
 
     function clearOrAddBuildingMarker(value, name){
-        markers_list[data.buildings.find(function (item) {
+        this.markers_list[this.buildings.find(function (item) {
             return item.name === name;
         }).id].getElement().style.opacity = value ? "1" : "0";
     }
-
-    var markers_list = [];
-    var map;
-
-    document.addEventListener('DOMContentLoaded', function(){
-        mapboxgl.accessToken = 'pk.eyJ1IjoibWFnZW50YWkiLCJhIjoiY2s3dnYxNGM2MDZiZTNmbm45c25vOG04dSJ9.yKeUDhl57--T2uMVzQFuGA';
-        map = new mapboxgl.Map({
-            container: 'map',
-            style: 'mapbox://styles/magentai/ck9u58ftx0zzn1iqam0b3f597/draft',
-            zoom: 14,
-         //   minZoom: 9,
-            center: [49.121815379295526, 55.79086830609842]
-         //   maxBounds: [[48.784006180441224,55.60902821610202],[49.48717222440314,55.99577053949221]]
-        });
-
-        // add markers
-        data.buildings.forEach(function (item) {
-            var marker = new mapboxgl.Marker()
-                .setLngLat(item.coords)
-                .addTo(map);
-            markers_list.push(marker);
-
-            marker.getElement().classList.add(item.type===0? 'markerEdu' : 'markerLive');
-
-            marker.getElement().innerHTML = "";
-
-            var popup = new mapboxgl.Popup({ offset: 25, className: "marker_popup" })
-                .setText(item.name);
-            marker.setPopup(popup);
-        });
-
-        map.addControl(
-            new mapboxgl.GeolocateControl({
-                positionOptions: {
-                    enableHighAccuracy: true
-                },
-                trackUserLocation: true
-            })
-        );
-        map.addControl(new mapboxgl.NavigationControl());
-
-        // map.on('render', function() {
-        //     console.log("resize");
-        //     map.resize();
-        // });
-
-    });
 </script>
 
 <style>
